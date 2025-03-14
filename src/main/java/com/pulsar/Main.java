@@ -1,10 +1,13 @@
 package com.pulsar;
 
 import com.pulsar.model.Customer;
+import com.pulsar.model.Order;
 import com.pulsar.model.Product;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -18,6 +21,188 @@ public class Main {
     private static final String BOOKS = "Книги";
 
     private static final String DELIMITER = "---------------";
+
+    public static void main(String[] args) {
+        // 1
+        System.out.println("1)");
+        products().stream()
+                .filter(product -> product.category().equals(BOOKS))
+                .filter(product -> product.price().compareTo(BigDecimal.valueOf(300)) > 0)
+                .forEach(System.out::println);
+        System.out.println(DELIMITER);
+
+        // 2 - Children's products заменил на категорию FOOD
+        System.out.println("2)");
+        orders().stream()
+                .filter(order -> order.products().stream()
+                        .anyMatch(product -> product.category().equals(FOOD)))
+                .forEach(System.out::println);
+
+        // 3 - Toys заменил на категорию FOOD
+        System.out.println("3)");
+        BigDecimal sum = products().stream()
+                .filter(product -> product.category().equals(FOOD))
+                .map(Product::price)
+                .map(price -> price.multiply(BigDecimal.valueOf(0.9)))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        System.out.println(sum);
+        System.out.println(DELIMITER);
+
+        // 4
+        System.out.println("4)");
+        orders().stream()
+                .filter(order -> order.customer().tier() == 2)
+                .filter(order -> order.orderDate().isAfter(LocalDate.of(2021, 2, 1)))
+                .filter(order -> order.deliveryDate().isBefore(LocalDate.of(2021, 4, 1)))
+                .map(Order::products)
+                .forEach(System.out::println);
+        System.out.println(DELIMITER);
+
+        // 5
+        System.out.println("5)");
+        products().stream()
+                .filter(product -> product.category().equals(BOOKS))
+                .sorted(Comparator.comparing(Product::price))
+                .limit(2)
+                .forEach(System.out::println);
+        System.out.println(DELIMITER);
+
+        // 6
+        System.out.println("6)");
+        orders().stream()
+                .sorted(Comparator.comparing(Order::orderDate).reversed())
+                .limit(3)
+                .forEach(System.out::println);
+        System.out.println(DELIMITER);
+
+        // 7 - 15 марта заменил на сегодняшнюю дату(LocalDate.now())
+        System.out.println("7)");
+        orders().stream()
+                .filter(order -> order.orderDate().equals(LocalDate.now()))
+                .peek(order -> System.out.println(order.id()))
+                .flatMap(order -> order.products().stream())
+                .forEach(System.out::println);
+        System.out.println(DELIMITER);
+
+        // 8 - февраль заменил на текущий месяц(март)
+        System.out.println("8)");
+        BigDecimal sumByMarch = orders().stream()
+                .filter(order -> order.orderDate().isAfter(LocalDate.of(2025, 3, 1)))
+                .filter(order -> order.orderDate().isBefore(LocalDate.of(2025, 4, 1)))
+                .flatMap(order -> order.products().stream())
+                .map(Product::price)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        System.out.println(sumByMarch);
+        System.out.println(DELIMITER);
+
+        // 9 - 14 марта 2021 заменил на LocalDate.now()
+        System.out.println("9)");
+        OptionalDouble average = orders().stream()
+                .filter(order -> order.deliveryDate().equals(LocalDate.now()))
+                .flatMap(order -> order.products().stream())
+                .mapToInt(product -> product.price().intValue())
+                .average();
+        average.ifPresent(System.out::println);
+        System.out.println(DELIMITER);
+
+        // 10 - я так понял, что нужно занести значения в отдельные переменные
+        System.out.println("10)");
+        int bookSum = products().stream()
+                .filter(product -> product.category().equals(BOOKS))
+                .map(Product::price)
+                .map(BigDecimal::intValue)
+                .reduce(0, Integer::sum);
+        OptionalDouble bookAverage = products().stream()
+                .filter(product -> product.category().equals(BOOKS))
+                .mapToInt(product -> product.price().intValue())
+                .average();
+        Optional<Product> bookMax = products().stream()
+                .filter(product -> product.category().equals(BOOKS))
+                .max(Comparator.comparing(Product::price));
+        Optional<Product> bookMin = products().stream()
+                .filter(product -> product.category().equals(BOOKS))
+                .min(Comparator.comparing(Product::price));
+        long bookCount = products().stream()
+                .filter(product -> product.category().equals(BOOKS))
+                .count();
+
+        // 11
+        System.out.println("11)");
+        Map<Long, Integer> orderMap = orders().stream()
+                .collect(Collectors.toMap(Order::id, order -> order.products().size()));
+        orderMap.forEach((k, v) -> System.out.println("Key: %s | Value: %s".formatted(k, v)));
+        System.out.println(DELIMITER);
+
+        // 12
+        System.out.println("12)");
+        Map<Customer, List<Order>> customerMap = customers().stream()
+                .collect(Collectors.toMap(Function.identity(), customer -> new ArrayList<>(customer.orders())));
+        customerMap.forEach((k, v) -> System.out.println("Key: %s | Value: %s".formatted(k, v)));
+        System.out.println(DELIMITER);
+
+        // 13 - так и не понял как решить проблему циклической зависимости между классами
+//        System.out.println("13)");
+//        Map<Order, Double> orderDoubleMap = orders().stream()
+//                .collect(Collectors.toMap(Function.identity(), order -> order.products().stream()
+//                        .map(product -> product.price().doubleValue())
+//                        .reduce(0.0, Double::sum))
+//                );
+//        orderDoubleMap.forEach((k, v) -> System.out.println("Key: %s | Value: %s".formatted(k, v)));
+//        System.out.println(DELIMITER);
+
+        // 14
+        System.out.println("14)");
+        Map<String, List<Product>> productMap = products().stream()
+                .map(Product::category)
+                .distinct()
+                .collect(Collectors.toMap(Function.identity(), category -> products().stream()
+                        .filter(product -> product.category().equals(category))
+                        .collect(Collectors.toList()))
+                );
+        productMap.forEach((k, v) -> System.out.println("Key: %s | Value: %s".formatted(k, v)));
+        System.out.println(DELIMITER);
+
+        // 15
+        System.out.println("15)");
+        Map<String, Product> stringProductMap = products().stream()
+                .map(Product::category)
+                .distinct()
+                .collect(Collectors.toMap(Function.identity(), category -> products().stream()
+                        .limit(1)
+                        .max(Comparator.comparing(Product::price))
+                        .orElseThrow())
+                );
+        stringProductMap.forEach((k, v) -> System.out.println("Key: %s | Value: %s".formatted(k, v)));
+
+    }
+
+    private static List<Order> orders() {
+        Order order1 = new Order(1L, Order.Status.DELIVERED,
+                LocalDate.of(2025, 10, 11),
+                LocalDate.of(2025, 10, 15), getRandomProducts(), getRandomCustomer());
+        order1.customer().orders().add(order1);
+
+        Order order2 = new Order(2L, Order.Status.ASSEMBLY,
+                LocalDate.now(), LocalDate.of(2025, 3, 20), getRandomProducts(), getRandomCustomer());
+        order2.customer().orders().add(order2);
+
+        Order order3 = new Order(3L, Order.Status.CANCELLED,
+                LocalDate.now(), LocalDate.now(),
+                getRandomProducts(), getRandomCustomer());
+        order3.customer().orders().add(order3);
+
+        Order order4 = new Order(4L, Order.Status.DELIVERED,
+                LocalDate.of(2025, 3, 10), LocalDate.now(),
+                getRandomProducts(), getRandomCustomer());
+        order4.customer().orders().add(order4);
+
+        Order order5 = new Order(5L, Order.Status.ON_THE_WAY,
+                LocalDate.of(2025, 3, 11), LocalDate.now(),
+                getRandomProducts(), getRandomCustomer());
+        order5.customer().orders().add(order5);
+
+        return new ArrayList<>(List.of(order1, order2, order3, order4, order5));
+    }
 
     private static Customer getRandomCustomer() {
         List<Customer> customers = customers();
