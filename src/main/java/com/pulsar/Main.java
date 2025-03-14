@@ -1,12 +1,10 @@
 package com.pulsar;
 
+import com.pulsar.model.Customer;
 import com.pulsar.model.Product;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -20,6 +18,22 @@ public class Main {
     private static final String BOOKS = "Книги";
 
     private static final String DELIMITER = "---------------";
+
+    private static Customer getRandomCustomer() {
+        List<Customer> customers = customers();
+        Collections.shuffle(customers);
+        return customers.getFirst();
+    }
+
+    private static List<Customer> customers() {
+        Customer customer1 = new Customer(1L, "Александр", 10, new HashSet<>());
+        Customer customer2 = new Customer(2L, "Иван", 5, new HashSet<>());
+        Customer customer3 = new Customer(3L, "Петя", 4, new HashSet<>());
+        Customer customer4 = new Customer(4L, "Максим", 7, new HashSet<>());
+        Customer customer5 = new Customer(5L, "Катя", 3, new HashSet<>());
+
+        return new ArrayList<>(List.of(customer1, customer2, customer3, customer4, customer5));
+    }
 
     private static Set<Product> getRandomProducts() {
         List<Product> products = products();
